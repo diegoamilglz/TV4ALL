@@ -1,3 +1,4 @@
+#by Diego A.
 import cv2
 
 # Cargamos el clasificador pre-entrenado para la detección de caras y ojos
@@ -8,11 +9,12 @@ eye_cascader = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_righte
 #eye_cascadel = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
 # Inicializamos la captura de vídeo desde la cámara
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) por si no funciona bien en windows, probar esta instrucción
 
 # Factor de zoom
-zoom_factor = 0.4  # Ajusta este valor según sea necesario. Con este valor, aproximadamente se logran detectar ambos ojos a 3.5~ metros
-#condiciones de buena iluminación (con sol), a la misma altura (77 cm)
+zoom_factor = 2.5  # Ajusta este valor según sea necesario. Con este valor, aproximadamente se logran detectar ambos ojos a 3.5~ metros
+#condiciones de buena iluminación (con sol), a la misma altura (77 cm) y sin gafas
 
 while True:
     # Capturamos un fotograma desde la cámara
@@ -22,8 +24,8 @@ while True:
     height, width = frame.shape[:2]
 
     # Calculamos las nuevas dimensiones después del zoom
-    new_height = int(height / zoom_factor)
-    new_width = int(width / zoom_factor)
+    new_height = int(height * zoom_factor)
+    new_width = int(width * zoom_factor)
 
     # Redimensionamos el fotograma para aplicar el zoom
     zoom_frame = cv2.resize(frame, (new_width, new_height))
@@ -41,7 +43,7 @@ while True:
         left_eye = eye_cascadel.detectMultiScale(roi_gray)
         right_eye = eye_cascadel.detectMultiScale(roi_gray)
         for (ex,ey,ew,eh) in left_eye:
-            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)  
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
         for (ex,ey,ew,eh) in right_eye:
             cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
         cv2.putText(zoom_frame,"Parpadea?",(x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
