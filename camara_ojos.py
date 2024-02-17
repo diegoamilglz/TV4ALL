@@ -46,9 +46,10 @@ while True:
             cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
         for (ex,ey,ew,eh) in right_eye:
             cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-        cv2.putText(zoom_frame,"Parpadea?",(x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            eye_size_right = f"Ancho: {ew}px, Alto: {eh}px"
+            cv2.putText(zoom_frame, eye_size_right, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-    # Mostramos el fotograma con los rectángulos dibujados alrededor de los ojos
+            print(eye_size_right)    # Mostramos el fotograma con los rectángulos dibujados alrededor de los ojos
     cv2.imshow('Eye Detection', zoom_frame)
 
     # Esperamos a que se presione la tecla 'q' para salir del bucle
