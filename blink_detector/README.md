@@ -25,6 +25,7 @@ pip install dlib
 ```
 No os preocupeis porque de algún error con requirements.txt, hay ciertas librerias que no son esenciales en esta versión del código. 
 
+Si sigue dando errores, puedes intentarlo sin entorno virtual, repetir los pasos omitiendo el primero
 
 Una vez instalado, ejecutar el programa:
 
