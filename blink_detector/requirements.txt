@@ -1,0 +1,13 @@
+scipy
+imutils
+argparse
+dlib
+opencv-python
+threading
+os
+ctypes
+sys
+logging
+requests
+numpy
+cmake
