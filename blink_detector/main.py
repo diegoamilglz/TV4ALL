@@ -81,7 +81,7 @@ def send_telegram_photo_worker():
         if job is None:
             break
         chat_id, photo, bot_token, message = job
-        send_telegram_photo(chat_i<d, photo, bot_token, message)
+        send_telegram_photo(chat_id, photo, bot_token, message)
         telegram_queue.task_done()
 
 
