@@ -82,7 +82,7 @@ mp_face_mesh = mp.solutions.face_mesh
 index_left_eye = [33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7] #[33, 160, 158, 133, 153, 144] Simpler version
 index_right_eye = [362,398,384,385,386,387,388,466,263,249,390,373,374,380,381,382] #[362, 385, 387, 263, 373, 380] Simpler version
 #EAR_THRESH = 0.27 #variable, si está mas cerca o mas lejos deberia variar 0.19
-NUM_FRAMES = 30
+NUM_FRAMES = 15
 aux_counter = 0
 blink_counter = 0
 line1 = []
@@ -145,12 +145,12 @@ with mp_face_mesh.FaceMesh(
                     aux_counter += 1
                     dormido = False
                else:
-                    if aux_counter >= NUM_FRAMES:
-                               #if aux_counter<= (NUM_FRAMES+30):
-                              aux_counter = 0
-                              blink_counter += 1
-                    else:
-                         dormido = True
+                    if (NUM_FRAMES+30)> aux_counter >= NUM_FRAMES:
+                    # elif aux_counter <= (NUM_FRAMES+30):
+                         aux_counter = 0
+                         blink_counter += 1
+                    # else:
+                    #      dormido = True
                          
                frame = drawing_output(frame, coordinates_left_eye, coordinates_right_eye, blink_counter,fps_disp)
                pts_ear.append(ear)
