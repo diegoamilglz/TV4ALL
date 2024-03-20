@@ -4,14 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 import time
+#from findpeaks import findpeaks
+from scipy.signal import find_peaks
 
 
 def drawing_output(frame, coordinates_left_eye, coordinates_right_eye, blink_counter,fpsdisp):
      aux_image = np.zeros(frame.shape, np.uint8)
-     contours1 = np.array([coordinates_left_eye])
-     contours2 = np.array([coordinates_right_eye])
-     cv2.fillPoly(aux_image, pts=[contours1], color=(128, 255, 200))
-     cv2.fillPoly(aux_image, pts=[contours2], color=(128, 255, 200))
+     # contours1 = np.array([coordinates_left_eye])
+     # contours2 = np.array([coordinates_right_eye])
+     # cv2.fillPoly(aux_image, pts=[contours1], color=(128, 255, 200))
+     # cv2.fillPoly(aux_image, pts=[contours2], color=(128, 255, 200))
      output = cv2.addWeighted(frame, 1, aux_image, 0.7, 1)
      cv2.rectangle(output, (0, 0), (200, 50), (255, 0, 0), -1)
      cv2.rectangle(output, (202, 0), (265, 50), (255, 0, 0),2)
@@ -29,23 +31,24 @@ def eye_aspect_ratio(coordinates):
      return (d_A + d_B) / (2 * d_C), d_C
 
 
-# def plotting_ear(pts_ear, line1):
-#      global figure
-#      pts = np.linspace(0, 1, 64)
-#      if line1 == []:
-#           plt.style.use("ggplot")
-#           plt.ion()
-#           figure, ax = plt.subplots()
-#           line1, = ax.plot(pts, pts_ear)
-#           plt.ylim(0.1, 0.4)
-#           plt.xlim(0, 1)
-#           plt.ylabel("EAR", fontsize=18)
-#      else:
-#           line1.set_ydata(pts_ear)
-#           figure.canvas.draw()
-#           figure.canvas.flush_events()
-#           if cv2.waitKey(5) & 0xFF == 27:
-#                cv2.destroyAllWindows()
+def plotting_ear(pts_ear, line1):
+     global figure
+     pts = np.linspace(0, 1, 64)
+     if line1 == []:
+          plt.style.use("ggplot")
+          plt.ion()
+          figure, ax = plt.subplots()
+          line1, = ax.plot(pts, pts_ear)
+          plt.ylim(0.1, 0.4)
+          plt.xlim(0, 1)
+          plt.ylabel("EAR", fontsize=18)
+     else:
+          line1.set_ydata(pts_ear)
+          figure.canvas.draw()
+          figure.canvas.flush_events()
+          if cv2.waitKey(5) & 0xFF == 27:
+               cv2.destroyAllWindows()
+     return line1
             
      
 def calculate_threshold(d_C):
@@ -54,7 +57,7 @@ def calculate_threshold(d_C):
      """
      # Define the ranges for d_C and EAR_THRESH.
      d_C_range = [35, 7]
-     EAR_THRESH_range = [0.27, 0.16]
+     EAR_THRESH_range = [0.29, 0.19]
 
      # Calculate the proportion of d_C within its range.
      proportion = (d_C - d_C_range[0]) / (d_C_range[1] - d_C_range[0])
@@ -67,17 +70,13 @@ def calculate_threshold(d_C):
 
      return EAR_THRESH
 
+# Inicializa la captura de video
 
-# Average the thresholds for both eyes.
-#EAR_THRESH = (EAR_THRESH_left_eye + EAR_THRESH_right_eye) / 2
-
-# Use the calculated EAR_THRESH in your condition.
-
-
-cap = cv2.VideoCapture(0) #distancia máxima 1.80 metros
+cap = cv2.VideoCapture(0) #distancia máxima 1.80 metros mao meno
 # cap.set(3,1280)
 # cap.set(4,720)
-
+# Definir el máximo número de valores que deseas almacenar
+MAX_VALORES = 1000
 mp_face_mesh = mp.solutions.face_mesh
 index_left_eye = [33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7] #[33, 160, 158, 133, 153, 144] Simpler version
 index_right_eye = [362,398,384,385,386,387,388,466,263,249,390,373,374,380,381,382] #[362, 385, 387, 263, 373, 380] Simpler version
@@ -88,10 +87,13 @@ blink_counter = 0
 line1 = []
 pts_ear = deque(maxlen=64)
 i = 0
+a=0
 fc=0
 display_time=3
 FPS=0
 start_time=time.time()
+# Inicializa una lista vacía para almacenar los valores de ear
+#ear_values = deque(maxlen=1000)
 
 with mp_face_mesh.FaceMesh(
      static_image_mode=False,
@@ -138,7 +140,7 @@ with mp_face_mesh.FaceMesh(
                ear_right_eye, distancia_horizontal_r = eye_aspect_ratio(coordinates_right_eye)
                ear = (ear_left_eye + ear_right_eye)/2
                EAR_THRESH = (calculate_threshold(distancia_horizontal_l) + calculate_threshold(distancia_horizontal_r))/2
-               print("ear_thresh:", EAR_THRESH)
+               #print("ear_thresh:", EAR_THRESH)
 
                # Ojos cerrados
                if ear < EAR_THRESH:
@@ -147,18 +149,66 @@ with mp_face_mesh.FaceMesh(
                else:
                     if (NUM_FRAMES+30)> aux_counter >= NUM_FRAMES:
                     # elif aux_counter <= (NUM_FRAMES+30):
-                         aux_counter = 0
                          blink_counter += 1
+                         # print("Parpadeo exitoso")
+                    elif aux_counter > (NUM_FRAMES+30):
+                         # print("Ojo cerrado por mucho tiempo")
+                         aux_counter = 0
                     # else:
                     #      dormido = True
+                    aux_counter = 0
+                    
                          
                frame = drawing_output(frame, coordinates_left_eye, coordinates_right_eye, blink_counter,fps_disp)
+
+               # Método para borrar el primer elemento de la lista si ya tiene MAX_VALORES elementos y así liberar memoria
+               # if len(pts_ear) >= MAX_VALORES:
+               #      # Si la lista ya tiene MAX_VALORES elementos, eliminar el primer elemento (el más antiguo)
+               #      del pts_ear[0]
+               
                pts_ear.append(ear)
-               if i > 70:
-                    #line1 = plotting_ear(pts_ear, line1)
-                    a = 0
-               i += 1
+               # if i > 70:
+                    
+               #      a = 0
+               # i += 1
                #print("pts_ear:", pts_ear)
+
+
+               #código usando find_peaks
+               pts_ear_array = np.array(pts_ear)
+
+               # Espera a tener suficientes valores antes de buscar picos, para evitar falsos positivos
+               if len(pts_ear_array) > 63:
+                    # Encuentra picos en los valores de EAR usando la función find_peaks
+                    line1 = plotting_ear(pts_ear, line1)
+                    peaks, _ = find_peaks(pts_ear_array, distance=10, width=1, prominence=0.1)#, wlen=15, width=15) #esto es lo que hay que modificar
+                    
+                    # Imprime los índices de los picos encontrados (si hay alguno)
+                   
+                    if len(peaks) > 0:
+                         print("Picos encontrados en los índices:", peaks)
+                    else:
+                         print("No se encontraron picos")
+
+               # if a>200:
+               #      fp = findpeaks(method='peakdetect', lookahead=5)
+               #      results = fp.fit(pts_ear_array)
+               #      if results['df'] is not None:
+               #           peak_indices = results['df']['ix'].values
+               #           print("Peak indices:", peak_indices)
+               #      else:
+               #           print("No peaks found")
+               # a += 1
+
+
+               #código usando find_peaks
+               
+               # if a>150:
+               #      peaks, _ = find_peaks(pts_ear_array, distance=10)
+               #      print("Peaks:", peaks)
+               # a += 1
+
+
           cv2.imshow("Frame", frame)
           if cv2.waitKey(1) & 0xFF == ord('q'):
                break

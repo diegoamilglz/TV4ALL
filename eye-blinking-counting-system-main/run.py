@@ -13,7 +13,7 @@ import os
 
 
 def download_facelandmark_model():
-	if(os.path.exists("model/shape_predictor_68_face_landmarks.dat")):
+	if(os.path.exists("eye-blinking-counting-system-main/model/shape_predictor_68_face_landmarks.dat")):
 		print("Yes")
 	else:
 		try:
@@ -61,7 +61,7 @@ fps = 0
 # the facial landmark predictor
 print("[INFO] loading facial landmark predictor...")
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("model/shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("eye-blinking-counting-system-main/model/shape_predictor_68_face_landmarks.dat")
 
 # grab the indexes of the facial landmarks for the left and
 # right eye, respectively
