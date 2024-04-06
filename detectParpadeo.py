@@ -208,14 +208,14 @@ with mp_face_mesh.FaceMesh(
                     pts_ear_array_smooth = medfilt(pts_ear_array, kernel_size=3)
                     # Assume pts_ear_array_smooth is your smoothed data
                     #window size usoo tamén para detectar un único pico que me interese
-                    pts_ear_array_smooth = np.convolve(pts_ear_array_smooth, np.ones(window_size)/window_size, mode='valid') 
+                    #pts_ear_array_smooth = np.convolve(pts_ear_array_smooth, np.ones(window_size)/window_size, mode='valid') 
                     #line1 = plotting_ear(pts_ear_array_smooth, line1)
-                    #line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2) 
+                    # line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2) 
                     # Display the plot
-                    peaks, diccionario = find_peaks(pts_ear_array_smooth, distance=10, prominence=0.038, width=10)#, wlen=15, width=15) #esto es lo que hay que modificar
+                    peaks, diccionario = find_peaks(pts_ear_array_smooth,distance=30,  width=15, prominence=0.030)#  , distance=30, threshold=0.0015, wlen=15, width=15) #esto es lo que hay que modificar
                     # Imprime los índices de los picos encontrados (si hay alguno)
                     if peaks.size > 0:
-                         if any(peaks>40) and not peak_detected:
+                         if any(peaks>30) and not peak_detected:
                          #     DIFERENTE PARA SIN GRÁFICAS
                               # if not peak_detected and len(peaks) > 1:
                               #      print("Varios picos consecutivos. peaks:", peaks)
@@ -226,8 +226,9 @@ with mp_face_mesh.FaceMesh(
                               print("Prominencias de los picos:", diccionario['prominences'])
                               print("Bases izquierdas de los picos:", diccionario['left_bases'])
                               print("Bases derechas de los picos:", diccionario['right_bases'], "\n")
+                              # print("Threshold", diccionario['left_thresholds'], diccionario['right_thresholds'], "\n")
                               peak_detected = True
-                         elif peak_detected and any(peaks<=40):
+                         elif peak_detected and any(peaks<=30):
                               print(" RESETEO SEÑAL ENVIADA. Peaks: ", peaks)
                               #aquí es simplemente para resetear el trigger de peak_detected
                               peak_detected = False
