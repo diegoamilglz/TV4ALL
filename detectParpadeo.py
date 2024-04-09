@@ -7,6 +7,7 @@ import time
 #from findpeaks import findpeaks
 from scipy.signal import find_peaks
 from scipy.signal import medfilt
+import pickle
 
 
 
@@ -56,7 +57,7 @@ def rising_edge(data, thresh):
 def representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2):
      # Create a new figure and two subplots: one for the original data and one for the smoothed data
      global figure
-     pts_or = np.linspace(0, 1, 64)
+     pts_or = np.linspace(0, 1, len(pts_ear_array))
      pts_smooth = np.linspace(0, 1, len(pts_ear_array_smooth))
      # pts_ear_array = pts_ear_array.flatten()
      # pts_ear_array_smooth = pts_ear_array_smooth.flatten()
@@ -104,7 +105,7 @@ blink_counter = 0
 # Inicializa una lista vacía para almacenar los valores de ear
 line1 = []
 line2 = []
-pts_ear = deque(maxlen=64)
+pts_ear = deque(maxlen=100)
 i = 0
 a=0
 # Parámetros para mostrar los FPS en pantalla
@@ -120,122 +121,135 @@ peak_detected = False
 with mp_face_mesh.FaceMesh(
      static_image_mode=False,
      max_num_faces=1) as face_mesh:
+     with open('ear_values.pkl', 'ab') as f:
+          while True:
+               ret, frame = cap.read()
+               #Display FPS
+               fc+=1
+               TIME = time.time() - start_time
+               if (TIME) >= display_time:
+                    FPS = fc / (TIME)
+                    fc = 0
+                    start_time = time.time()
+               
+               fps_disp = "FPS: "+str(FPS)[:5]
+               
+               
+               if ret == False:
+                    break
+               frame = cv2.flip(frame, 1)
+               height, width, _ = frame.shape
+               frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+               results = face_mesh.process(frame_rgb)
 
-     while True:
-          ret, frame = cap.read()
-          #Display FPS
-          fc+=1
-          TIME = time.time() - start_time
-          if (TIME) >= display_time:
-               FPS = fc / (TIME)
-               fc = 0
-               start_time = time.time()
-          
-          fps_disp = "FPS: "+str(FPS)[:5]
-          
-          
-          if ret == False:
-               break
-          frame = cv2.flip(frame, 1)
-          height, width, _ = frame.shape
-          frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-          results = face_mesh.process(frame_rgb)
+               coordinates_left_eye = []
+               coordinates_right_eye = []
 
-          coordinates_left_eye = []
-          coordinates_right_eye = []
+               if results.multi_face_landmarks is not None:
+                    for face_landmarks in results.multi_face_landmarks:
+                         for index in index_left_eye:
+                              x = int(face_landmarks.landmark[index].x * width)
+                              y = int(face_landmarks.landmark[index].y * height)
+                              coordinates_left_eye.append([x, y])
+                              cv2.circle(frame, (x, y), 2, (0, 255, 255), 1)
+                              cv2.circle(frame, (x, y), 1, (128, 0, 250), 1)
+                         for index in index_right_eye:
+                              x = int(face_landmarks.landmark[index].x * width)
+                              y = int(face_landmarks.landmark[index].y * height)
+                              coordinates_right_eye.append([x, y])
+                              cv2.circle(frame, (x, y), 2, (128, 0, 250), 1)
+                              cv2.circle(frame, (x, y), 1, (0, 255, 255), 1)
+                    ear_left_eye, distancia_horizontal_l = eye_aspect_ratio(coordinates_left_eye)
+                    ear_right_eye, distancia_horizontal_r = eye_aspect_ratio(coordinates_right_eye)
+                    ear = (ear_left_eye + ear_right_eye)/2
+                    EAR_THRESH = (calculate_threshold(distancia_horizontal_l) + calculate_threshold(distancia_horizontal_r))/2
+                    #print("ear_thresh:", EAR_THRESH)
 
-          if results.multi_face_landmarks is not None:
-               for face_landmarks in results.multi_face_landmarks:
-                    for index in index_left_eye:
-                         x = int(face_landmarks.landmark[index].x * width)
-                         y = int(face_landmarks.landmark[index].y * height)
-                         coordinates_left_eye.append([x, y])
-                         cv2.circle(frame, (x, y), 2, (0, 255, 255), 1)
-                         cv2.circle(frame, (x, y), 1, (128, 0, 250), 1)
-                    for index in index_right_eye:
-                         x = int(face_landmarks.landmark[index].x * width)
-                         y = int(face_landmarks.landmark[index].y * height)
-                         coordinates_right_eye.append([x, y])
-                         cv2.circle(frame, (x, y), 2, (128, 0, 250), 1)
-                         cv2.circle(frame, (x, y), 1, (0, 255, 255), 1)
-               ear_left_eye, distancia_horizontal_l = eye_aspect_ratio(coordinates_left_eye)
-               ear_right_eye, distancia_horizontal_r = eye_aspect_ratio(coordinates_right_eye)
-               ear = (ear_left_eye + ear_right_eye)/2
-               EAR_THRESH = (calculate_threshold(distancia_horizontal_l) + calculate_threshold(distancia_horizontal_r))/2
-               #print("ear_thresh:", EAR_THRESH)
-
-               # Ojos cerrados
-               if ear < EAR_THRESH:
-                    aux_counter += 1
-                    dormido = False
-               else:
-                    if (NUM_FRAMES+30)> aux_counter >= NUM_FRAMES:
-                    # elif aux_counter <= (NUM_FRAMES+30):
-                         blink_counter += 1
-                         # print("Parpadeo exitoso")
-                    elif aux_counter > (NUM_FRAMES+30):
-                         # print("Ojo cerrado por mucho tiempo")
+                    # Ojos cerrados
+                    if ear < EAR_THRESH:
+                         aux_counter += 1
+                         dormido = False
+                    else:
+                         if (NUM_FRAMES+30)> aux_counter >= NUM_FRAMES:
+                         # elif aux_counter <= (NUM_FRAMES+30):
+                              blink_counter += 1
+                              # print("Parpadeo exitoso")
+                         elif aux_counter > (NUM_FRAMES+30):
+                              # print("Ojo cerrado por mucho tiempo")
+                              aux_counter = 0
+                         # else:
+                         #      dormido = True
                          aux_counter = 0
-                    # else:
-                    #      dormido = True
-                    aux_counter = 0
-                    
                          
-               frame = drawing_output(frame, coordinates_left_eye, coordinates_right_eye, blink_counter,fps_disp)
-
-               # Método para borrar el primer elemento de la lista si ya tiene MAX_VALORES elementos y así liberar memoria
-               # if len(pts_ear) >= MAX_VALORES:
-               #      # Si la lista ya tiene MAX_VALORES elementos, eliminar el primer elemento (el más antiguo)
-               #      del pts_ear[0]
-               
-               pts_ear.append(ear)
-               # if i > 70:
+                              
+                    frame = drawing_output(frame, coordinates_left_eye, coordinates_right_eye, blink_counter,fps_disp)
+                    pickle.dump(ear, f)
+                    pts_ear.append(ear)
+                    # Convierte la lista de valores de EAR en un array de numpy
+                    pts_ear_array = -np.array(pts_ear)
                     
-               #      a = 0
-               # i += 1
-               #print("pts_ear:", pts_ear)
 
+                    # Espera a tener suficientes valores antes de buscar picos, para evitar falsos positivos
+                    if len(pts_ear) > 63: #cambiar si se quiere representar graficamente de forma continua
+                         # Encuentra picos en los valores de EAR usando la función find_peaks
+                         #line1 = plotting_ear(pts_ear, line1)
+                         pts_ear_array_smooth = medfilt(pts_ear_array, kernel_size=3)
+                         # line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2) 
+                         # Display the plot
+                         peaks, diccionario = find_peaks(pts_ear_array_smooth,distance=40,  width=15, prominence=0.030)#  , distance=30, threshold=0.0015, wlen=15, width=15) #esto es lo que hay que modificar
+                         # Imprime los índices de los picos encontrados (si hay alguno)
+                         if peaks.size > 0:
+                              if any(peaks>47) and not peak_detected:
+                              #     DIFERENTE PARA SIN GRÁFICAS
+                                   # if not peak_detected and len(peaks) > 1:
+                                   #      print("Varios picos consecutivos. peaks:", peaks)
+                                   #      #podría ser necesario cambiarlo o tenerlo en cuenta
+                                   # else:
+                                   print("PICO DETECTADO")
+                                   print("Picos encontrados en los índices:", peaks)
+                                   print("Prominencias de los picos:", diccionario['prominences'])
+                                   print("Bases izquierdas de los picos:", diccionario['left_bases'])
+                                   print("Bases derechas de los picos:", diccionario['right_bases'], "\n")
+                                   # print("Threshold", diccionario['left_thresholds'], diccionario['right_thresholds'], "\n")
+                                   peak_detected = True
+                              elif peak_detected and any(peaks<=47):
+                                   print(" RESETEO SEÑAL ENVIADA. Peaks: ", peaks)
+                                   #aquí es simplemente para resetear el trigger de peak_detected
+                                   peak_detected = False
+                              # if blink_counter > 5:
+                              #      line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2)
+                              #      blink_counter = 0
+                              
 
-               #código usando find_peaks
-               # Convierte la lista de valores de EAR en un array de numpy
-               pts_ear_array = -np.array(pts_ear)
-               
+               cv2.imshow("Frame", frame)
+               if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
-               # Espera a tener suficientes valores antes de buscar picos, para evitar falsos positivos
-               if len(pts_ear) > 63:
-                    # Encuentra picos en los valores de EAR usando la función find_peaks
-                    #line1 = plotting_ear(pts_ear, line1)
-                    pts_ear_array_smooth = medfilt(pts_ear_array, kernel_size=3)
-                    # Assume pts_ear_array_smooth is your smoothed data
-                    #window size usoo tamén para detectar un único pico que me interese
-                    #pts_ear_array_smooth = np.convolve(pts_ear_array_smooth, np.ones(window_size)/window_size, mode='valid') 
-                    #line1 = plotting_ear(pts_ear_array_smooth, line1)
-                    # line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2) 
-                    # Display the plot
-                    peaks, diccionario = find_peaks(pts_ear_array_smooth,distance=30,  width=15, prominence=0.030)#  , distance=30, threshold=0.0015, wlen=15, width=15) #esto es lo que hay que modificar
-                    # Imprime los índices de los picos encontrados (si hay alguno)
-                    if peaks.size > 0:
-                         if any(peaks>30) and not peak_detected:
-                         #     DIFERENTE PARA SIN GRÁFICAS
-                              # if not peak_detected and len(peaks) > 1:
-                              #      print("Varios picos consecutivos. peaks:", peaks)
-                              #      #podría ser necesario cambiarlo o tenerlo en cuenta
-                              # else:
-                              print("PICO DETECTADO")
-                              print("Picos encontrados en los índices:", peaks)
-                              print("Prominencias de los picos:", diccionario['prominences'])
-                              print("Bases izquierdas de los picos:", diccionario['left_bases'])
-                              print("Bases derechas de los picos:", diccionario['right_bases'], "\n")
-                              # print("Threshold", diccionario['left_thresholds'], diccionario['right_thresholds'], "\n")
-                              peak_detected = True
-                         elif peak_detected and any(peaks<=30):
-                              print(" RESETEO SEÑAL ENVIADA. Peaks: ", peaks)
-                              #aquí es simplemente para resetear el trigger de peak_detected
-                              peak_detected = False
-                         
-
-          cv2.imshow("Frame", frame)
-          if cv2.waitKey(1) & 0xFF == ord('q'):
-               break
 cap.release()
 cv2.destroyAllWindows()
+
+with open('ear_values.pkl', 'rb') as f:
+    ear_values = []
+    while True:
+        try:
+            ear_values.append(-pickle.load(f))
+        except EOFError:
+            break
+# Plot pts_ear
+plt.figure()
+# pts_ear = [-ear for ear in pts_ear]
+# plt.plot(pts_ear)
+ear_values = ear_values[-100:]
+plt.plot(ear_values)
+plt.title('pts_ear')
+
+# Plot pts_ear_array_smooth
+plt.figure()
+plt.plot(pts_ear_array_smooth)
+plt.title('pts_ear_array_smooth')
+plt.show()
+
+#plt.pause(1)
+# Wait for a certain amount of time or until a key is pressed
+# Close all plots
+plt.close('all')
