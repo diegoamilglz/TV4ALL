@@ -190,16 +190,17 @@ with mp_face_mesh.FaceMesh(
                     
 
                     # Espera a tener suficientes valores antes de buscar picos, para evitar falsos positivos
-                    if len(pts_ear) > 63: #cambiar si se quiere representar graficamente de forma continua
+                    if len(pts_ear) > 90: #cambiar si se quiere representar graficamente de forma continua
                          # Encuentra picos en los valores de EAR usando la función find_peaks
                          #line1 = plotting_ear(pts_ear, line1)
                          pts_ear_array_smooth = medfilt(pts_ear_array, kernel_size=3)
+                         #pts_ear_array_smooth = np.convolve(pts_ear_array, np.ones(window_size)/window_size, mode='valid') 
                          # line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2) 
                          # Display the plot
                          peaks, diccionario = find_peaks(pts_ear_array_smooth,distance=40,  width=15, prominence=0.030)#  , distance=30, threshold=0.0015, wlen=15, width=15) #esto es lo que hay que modificar
                          # Imprime los índices de los picos encontrados (si hay alguno)
                          if peaks.size > 0:
-                              if any(peaks>47) and not peak_detected:
+                              if any(peaks>70) and not peak_detected:
                               #     DIFERENTE PARA SIN GRÁFICAS
                                    # if not peak_detected and len(peaks) > 1:
                                    #      print("Varios picos consecutivos. peaks:", peaks)
@@ -212,19 +213,14 @@ with mp_face_mesh.FaceMesh(
                                    print("Bases derechas de los picos:", diccionario['right_bases'], "\n")
                                    # print("Threshold", diccionario['left_thresholds'], diccionario['right_thresholds'], "\n")
                                    peak_detected = True
-                              elif peak_detected and any(peaks<=47):
+                              elif peak_detected and any(peaks<=70):
                                    print(" RESETEO SEÑAL ENVIADA. Peaks: ", peaks)
                                    #aquí es simplemente para resetear el trigger de peak_detected
-                                   peak_detected = False
-                              # if blink_counter > 5:
-                              #      line1, line2 = representar_grafico(pts_ear_array, pts_ear_array_smooth, line1, line2)
-                              #      blink_counter = 0
-                              
+                                   peak_detected = False         
 
                cv2.imshow("Frame", frame)
                if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-
 cap.release()
 cv2.destroyAllWindows()
 
@@ -235,21 +231,33 @@ with open('ear_values.pkl', 'rb') as f:
             ear_values.append(-pickle.load(f))
         except EOFError:
             break
-# Plot pts_ear
+# Plot pts_ear and pts_ear_array_smooth in the same figure
 plt.figure()
-# pts_ear = [-ear for ear in pts_ear]
-# plt.plot(pts_ear)
-ear_values = ear_values[-100:]
-plt.plot(ear_values)
-plt.title('pts_ear')
 
-# Plot pts_ear_array_smooth
-plt.figure()
-plt.plot(pts_ear_array_smooth)
-plt.title('pts_ear_array_smooth')
+# Plot ear_values in red
+ear_values = ear_values[-100:]
+plt.plot(ear_values, color='red', label='pts_ear')
+
+# Plot pts_ear_array_smooth in blue
+plt.plot(pts_ear_array_smooth, color='blue', label='pts_ear_array_smooth')
+
+plt.title('pts_ear and pts_ear_array_smooth')
+plt.legend()  # Add a legend to distinguish the two lines
 plt.show()
 
-#plt.pause(1)
-# Wait for a certain amount of time or until a key is pressed
 # Close all plots
 plt.close('all')
+# # Plot pts_ear
+# plt.figure()
+# ear_values = ear_values[-100:]
+# plt.plot(ear_values)
+# plt.title('pts_ear')
+
+# # Plot pts_ear_array_smooth
+# plt.figure()
+# plt.plot(pts_ear_array_smooth)
+# plt.title('pts_ear_array_smooth')
+# plt.show()
+
+# # Close all plots
+# plt.close('all')
